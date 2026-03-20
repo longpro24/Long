@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dance Transfer AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --card: #13131c;
+    --border: #252535;
+    --accent: #c8f050;
+    --accent2: #8b5cf6;
+    --text: #f0f0f5;
+    --muted: #6b6b80;
+    --danger: #ff4466;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:var(--bg); color:var(--text);
+    font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden;
+  }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(200,240,80,.025) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(200,240,80,.025) 1px,transparent 1px);
+    background-size:44px 44px; pointer-events:none; z-index:0;
+  }
+  .wrap { position:relative; z-index:1; max-width:900px; margin:0 auto; padding:48px 20px 80px; }
+
+  /* HEADER */
+  header { text-align:center; margin-bottom:52px; }
+  .logo {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(52px,9vw,96px); letter-spacing:8px;
+    background:linear-gradient(135deg,var(--accent) 0%,#90e030 45%,var(--accent2) 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; line-height:1;
+  }
+  .tagline { margin-top:10px; color:var(--muted); font-size:12px; letter-spacing:3.5px; text-transform:uppercase; }
+
+  /* TOKEN */
+  .token-bar {
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:18px 22px; margin-bottom:28px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+  }
+  .token-label { font-size:11px; color:var(--accent); letter-spacing:2px; text-transform:uppercase; font-weight:500; white-space:nowrap; }
+  #hfToken {
+    flex:1; min-width:200px; background:var(--bg); border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:var(--text);
+    font-family:'DM Sans',sans-serif; font-size:13px; outline:none; transition:border-color .2s;
+  }
+  #hfToken:focus { border-color:var(--accent); }
+  .token-hint { font-size:11px; color:var(--muted); white-space:nowrap; }
+  .token-hint a { color:var(--accent2); text-decoration:none; }
+  .token-hint a:hover { text-decoration:underline; }
+
+  /* UPLOAD */
+  #imgInput,#vidInput { display:none; }
+  .upload-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:24px; }
+  @media(max-width:580px){ .upload-grid{ grid-template-columns:1fr; } }
+  .upload-card {
+    background:var(--card); border:1.5px dashed var(--border); border-radius:16px;
+    padding:30px 18px; text-align:center; cursor:pointer;
+    transition:border-color .2s,background .2s,transform .18s; user-select:none;
+  }
+  .upload-card:hover { border-color:var(--accent); background:#17172200; transform:translateY(-3px); }
+  .upload-card:active { transform:translateY(0); }
+  .upload-card.has-file { border-style:solid; border-color:var(--accent); background:rgba(200,240,80,.035); }
+  .upload-icon { font-size:38px; display:block; margin-bottom:10px; transition:transform .18s; }
+  .upload-card:hover .upload-icon { transform:scale(1.12); }
+  .upload-title { font-family:'Bebas Neue',sans-serif; font-size:21px; letter-spacing:2px; margin-bottom:5px; }
+  .upload-sub { font-size:11.5px; color:var(--muted); line-height:1.65; }
+  .upload-sub small { color:#404055; }
+  .fname { display:none; margin-top:12px; font-size:11px; color:var(--accent); font-weight:500; word-break:break-all; }
+  .fname.show { display:block; }
+
+  /* PREVIEW */
+  .preview-row { display:none; gap:14px; margin-bottom:24px; }
+  .preview-row.show { display:flex; }
+  .pbox { flex:1; flex-direction:column; align-items:center; gap:6px; }
+  .pbox.show { display:flex; }
+  .pbox-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+  .pbox img,.pbox video {
+    width:100%; max-height:170px; object-fit:contain;
+    border-radius:10px; border:1px solid var(--border); background:#000;
+  }
+
+  /* SETTINGS */
+  .settings-row { display:grid; grid-template-columns:2fr 1fr 1fr; gap:14px; margin-bottom:24px; }
+  @media(max-width:580px){ .settings-row{ grid-template-columns:1fr; } }
+  .sg { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+  .sg label { display:block; font-size:10px; color:var(--accent); letter-spacing:2px; text-transform:uppercase; margin-bottom:9px; font-weight:500; }
+  .sg select {
+    width:100%; background:var(--bg); border:1px solid var(--border); border-radius:6px;
+    color:var(--text); font-family:'DM Sans',sans-serif; font-size:12.5px; padding:8px 10px; outline:none; cursor:pointer;
+  }
+  .sg input[type=range] { width:100%; accent-color:var(--accent); cursor:pointer; margin-top:2px; }
+  .rval { font-size:12px; color:var(--accent); text-align:right; margin-top:3px; }
+
+  /* RUN BTN */
+  #runBtn {
+    width:100%; padding:20px; background:var(--accent); color:#08080e; border:none;
+    border-radius:14px; font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:5px;
+    cursor:pointer; transition:background .2s,transform .18s,box-shadow .2s;
+  }
+  #runBtn:hover:not(:disabled) { background:#d8ff60; transform:translateY(-2px); box-shadow:0 10px 38px rgba(200,240,80,.28); }
+  #runBtn:active:not(:disabled) { transform:translateY(0); }
+  #runBtn:disabled { background:#1e1e2e; color:var(--muted); cursor:not-allowed; }
+
+  /* STATUS */
+  #statusArea { display:none; margin-top:22px; }
+  #statusArea.show { display:block; }
+  .status-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:22px 24px; }
+  .status-head { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .spinner {
+    width:18px; height:18px; border:2px solid var(--border);
+    border-top-color:var(--accent); border-radius:50%; animation:spin .75s linear infinite; flex-shrink:0;
+  }
+  @keyframes spin { to{transform:rotate(360deg);} }
+  #statusTxt { font-size:13.5px; color:var(--text); flex:1; }
+  .prog-bar { height:3px; background:var(--border); border-radius:2px; overflow:hidden; margin-bottom:12px; }
+  #progFill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); width:0%; transition:width .45s ease; }
+  #logBox {
+    background:var(--bg); border:1px solid var(--border); border-radius:8px;
+    padding:10px 14px; font-size:11.5px; color:var(--muted); line-height:1.75;
+    max-height:110px; overflow-y:auto; font-family:'Courier New',monospace;
+  }
+
+  /* ERROR */
+  #errorArea { display:none; margin-top:16px; }
+  #errorArea.show { display:block; }
+  .err-box {
+    background:rgba(255,68,102,.07); border:1px solid rgba(255,68,102,.28);
+    border-radius:10px; padding:16px 20px; font-size:13px; color:var(--danger); line-height:1.7;
+  }
+
+  /* RESULT */
+  #resultArea { display:none; margin-top:22px; }
+  #resultArea.show { display:block; }
+  .result-card { background:var(--card); border:1px solid var(--accent); border-radius:16px; padding:28px; text-align:center; }
+  .result-title { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:3px; color:var(--accent); margin-bottom:18px; }
+  #resultMedia video { width:100%; max-height:420px; border-radius:10px; background:#000; margin-bottom:18px; display:block; }
+  #resultMedia img { width:100%; max-height:420px; object-fit:contain; border-radius:10px; margin-bottom:18px; display:block; }
+  #dlBtn {
+    display:inline-block; padding:13px 34px; border:2px solid var(--accent); color:var(--accent);
+    background:transparent; border-radius:10px; font-family:'Bebas Neue',sans-serif;
+    font-size:17px; letter-spacing:3px; cursor:pointer; text-decoration:none; transition:all .2s;
+  }
+  #dlBtn:hover { background:var(--accent); color:#08080e; }
+
+  /* INFO */
+  .info-strip { margin-top:44px; display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media(max-width:580px){ .info-strip{ grid-template-columns:1fr; } }
+  .info-item { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; text-align:center; }
+  .info-icon { font-size:22px; margin-bottom:7px; }
+  .info-item h4 { font-size:11px; color:var(--accent); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:4px; }
+  .info-item p { font-size:11px; color:var(--muted); line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">DANCE TRANSFER</div>
+    <div class="tagline">AI · Sao chép điệu nhảy từ ảnh &amp; video · HuggingFace</div>
+  </header>
+
+  <div class="token-bar">
+    <span class="token-label">🤗 HF Token</span>
+    <input type="password" id="hfToken" placeholder="hf_xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+    <span class="token-hint"><a href="https://huggingface.co/settings/tokens" target="_blank">Lấy token miễn phí →</a></span>
+  </div>
+
+  <!-- File inputs hoàn toàn tách biệt, không nằm trong card -->
+  <input type="file" id="imgInput" accept="image/jpeg,image/png,image/webp,image/gif">
+  <input type="file" id="vidInput" accept="video/mp4,video/quicktime,video/x-msvideo,video/webm,video/*">
+
+  <div class="upload-grid">
+    <div class="upload-card" id="imgCard" role="button" tabindex="0">
+      <span class="upload-icon">🧍</span>
+      <div class="upload-title">Ảnh Nhân Vật</div>
+      <div class="upload-sub">Click để chọn ảnh người bạn muốn nhảy<br><small>JPG · PNG · WEBP</small></div>
+      <div class="fname" id="imgFname"></div>
+    </div>
+    <div class="upload-card" id="vidCard" role="button" tabindex="0">
+      <span class="upload-icon">🎬</span>
+      <div class="upload-title">Video Điệu Nhảy</div>
+      <div class="upload-sub">Click để chọn video chứa điệu nhảy gốc<br><small>MP4 · MOV · AVI · WEBM</small></div>
+      <div class="fname" id="vidFname"></div>
+    </div>
+  </div>
+
+  <div class="preview-row" id="previewRow">
+    <div class="pbox" id="imgPbox">
+      <div class="pbox-label">Ảnh nhân vật</div>
+      <img id="imgPreview" alt="preview">
+    </div>
+    <div class="pbox" id="vidPbox">
+      <div class="pbox-label">Video điệu nhảy</div>
+      <video id="vidPreview" muted playsinline controls></video>
+    </div>
+  </div>
+
+  <div class="settings-row">
+    <div class="sg">
+      <label>⚡ Model AI</label>
+      <select id="modelSel">
+        <option value="stabilityai/stable-video-diffusion-img2vid-xt">Stable Video Diffusion XT ✅</option>
+        <option value="stabilityai/stable-video-diffusion-img2vid">Stable Video Diffusion</option>
+        <option value="ali-vilab/i2vgen-xl">I2VGen-XL (Alibaba)</option>
+        <option value="guoyww/animatediff-motion-adapter-v1-5-3">AnimateDiff v1.5</option>
+      </select>
+    </div>
+    <div class="sg">
+      <label>🎞 Frames</label>
+      <input type="range" id="framesR" min="8" max="25" value="14"
+             oninput="document.getElementById('framesV').textContent=this.value">
+      <div class="rval" id="framesV">14</div>
+    </div>
+    <div class="sg">
+      <label>🎯 Guidance</label>
+      <input type="range" id="guidanceR" min="1" max="20" value="7" step="0.5"
+             oninput="document.getElementById('guidanceV').textContent=this.value">
+      <div class="rval" id="guidanceV">7</div>
+    </div>
+  </div>
+
+  <button id="runBtn" disabled>▶ GENERATE DANCE VIDEO</button>
+
+  <div id="statusArea">
+    <div class="status-card">
+      <div class="status-head">
+        <div class="spinner"></div>
+        <div id="statusTxt">Đang khởi tạo...</div>
+      </div>
+      <div class="prog-bar"><div id="progFill"></div></div>
+      <div id="logBox"></div>
+    </div>
+  </div>
+
+  <div id="errorArea"><div class="err-box" id="errorMsg"></div></div>
+
+  <div id="resultArea">
+    <div class="result-card">
+      <div class="result-title">✨ Video Hoàn Thành</div>
+      <div id="resultMedia"></div>
+      <a id="dlBtn">⬇ TẢI VIDEO</a>
+    </div>
+  </div>
+
+  <div class="info-strip">
+    <div class="info-item">
+      <div class="info-icon">🤗</div>
+      <h4>Miễn phí</h4>
+      <p>Dùng HuggingFace Inference API — chỉ cần token miễn phí</p>
+    </div>
+    <div class="info-item">
+      <div class="info-icon">🔒</div>
+      <h4>Riêng tư</h4>
+      <p>File chỉ gửi thẳng lên HuggingFace, không lưu nơi khác</p>
+    </div>
+    <div class="info-item">
+      <div class="info-icon">⏱</div>
+      <h4>Thời gian</h4>
+      <p>Khoảng 1–3 phút tuỳ model. Cold start có thể lâu hơn.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+/* ── STATE ── */
+let imgFile = null;
+let vidFile = null;
+
+/* ── UPLOAD: card click → trigger hidden input ── */
+['img','vid'].forEach(function(prefix) {
+  var card  = document.getElementById(prefix + 'Card');
+  var input = document.getElementById(prefix + 'Input');
+
+  // Click trên card → mở file picker
+  card.addEventListener('click', function(e) {
+    e.stopPropagation();
+    input.value = '';          // reset để chọn lại cùng file nếu cần
+    input.click();
+  });
+
+  // Keyboard support
+  card.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); }
+  });
+});
+
+/* ── KHI CHỌN ẢNH ── */
+document.getElementById('imgInput').addEventListener('change', function() {
+  var file = this.files && this.files[0];
+  if (!file) return;
+  imgFile = file;
+
+  var fn = document.getElementById('imgFname');
+  fn.textContent = '✓ ' + file.name;
+  fn.classList.add('show');
+  document.getElementById('imgCard').classList.add('has-file');
+
+  var url = URL.createObjectURL(file);
+  document.getElementById('imgPreview').src = url;
+
+  var pbox = document.getElementById('imgPbox');
+  pbox.classList.add('show');
+  document.getElementById('previewRow').classList.add('show');
+  checkReady();
+});
+
+/* ── KHI CHỌN VIDEO ── */
+document.getElementById('vidInput').addEventListener('change', function() {
+  var file = this.files && this.files[0];
+  if (!file) return;
+  vidFile = file;
+
+  var fn = document.getElementById('vidFname');
+  fn.textContent = '✓ ' + file.name;
+  fn.classList.add('show');
+  document.getElementById('vidCard').classList.add('has-file');
+
+  var url = URL.createObjectURL(file);
+  var v = document.getElementById('vidPreview');
+  v.src = url;
+  v.load();
+
+  var pbox = document.getElementById('vidPbox');
+  pbox.classList.add('show');
+  document.getElementById('previewRow').classList.add('show');
+  checkReady();
+});
+
+/* ── ENABLE RUN BUTTON ── */
+function checkReady() {
+  var token = document.getElementById('hfToken').value.trim();
+  var ok = imgFile !== null && vidFile !== null && token.length > 10;
+  document.getElementById('runBtn').disabled = !ok;
+}
+document.getElementById('hfToken').addEventListener('input', checkReady);
+
+/* ── LOGGING ── */
+function log(msg) {
+  var box = document.getElementById('logBox');
+  var d = document.createElement('div');
+  d.textContent = '› ' + msg;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+function setStatus(txt, pct) {
+  document.getElementById('statusTxt').textContent = txt;
+  if (pct !== undefined) document.getElementById('progFill').style.width = pct + '%';
+}
+function showErr(html) {
+  document.getElementById('errorMsg').innerHTML = html;
+  document.getElementById('errorArea').classList.add('show');
+}
+
+/* ── FILE → BASE64 ── */
+function fileToB64(file) {
+  return new Promise(function(res, rej) {
+    var fr = new FileReader();
+    fr.onload  = function() { res(fr.result.split(',')[1]); };
+    fr.onerror = function() { rej(new Error('Không đọc được file')); };
+    fr.readAsDataURL(file);
+  });
+}
+
+/* ── TRÍCH FRAME ĐẦU TỪ VIDEO ── */
+function extractFrame(file) {
+  return new Promise(function(resolve, reject) {
+    var v   = document.createElement('video');
+    var url = URL.createObjectURL(file);
+    v.muted = true; v.playsInline = true;
+
+    v.addEventListener('error', function() {
+      URL.revokeObjectURL(url);
+      reject(new Error('Không đọc được video'));
+    });
+
+    v.addEventListener('loadeddata', function() { v.currentTime = 0; });
+
+    v.addEventListener('seeked', function() {
+      var c = document.createElement('canvas');
+      c.width  = v.videoWidth  || 512;
+      c.height = v.videoHeight || 512;
+      c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+      c.toBlob(function(blob) {
+        URL.revokeObjectURL(url);
+        if (blob) resolve(blob);
+        else reject(new Error('Canvas toBlob lỗi'));
+      }, 'image/jpeg', 0.92);
+    }, { once: true });
+
+    v.src = url;
+    v.load();
+  });
+}
+
+/* ── RUN ── */
+document.getElementById('runBtn').addEventListener('click', runTransfer);
+
+async function runTransfer() {
+  var token    = document.getElementById('hfToken').value.trim();
+  var model    = document.getElementById('modelSel').value;
+  var frames   = parseInt(document.getElementById('framesR').value);
+  var guidance = parseFloat(document.getElementById('guidanceR').value);
+
+  // Reset UI
+  document.getElementById('errorArea').classList.remove('show');
+  document.getElementById('resultArea').classList.remove('show');
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('statusArea').classList.add('show');
+  document.getElementById('runBtn').disabled = true;
+  setStatus('Đang chuẩn bị...', 5);
+
+  try {
+    log('Đọc ảnh nhân vật...');
+    var imgB64 = await fileToB64(imgFile);
+    setStatus('Trích frame từ video...', 18);
+
+    log('Trích xuất frame từ video...');
+    var frameB64 = null;
+    try {
+      var frameBlob = await extractFrame(vidFile);
+      frameB64 = await fileToB64(frameBlob);
+      log('Frame OK ✓');
+    } catch(e) {
+      log('Cảnh báo frame: ' + e.message);
+    }
+
+    setStatus('Gửi lên HuggingFace...', 32);
+    log('Model: ' + model);
+
+    var endpoint = 'https://api-inference.huggingface.co/models/' + model;
+    var authHeader = { 'Authorization': 'Bearer ' + token };
+    var response;
+
+    if (model.indexOf('stable-video-diffusion') !== -1) {
+      // SVD nhận raw binary image
+      log('Gửi raw image tới SVD...');
+      setStatus('SVD đang xử lý (1–3 phút)...', 42);
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: authHeader,
+        body: imgFile
+      });
+
+    } else if (model === 'ali-vilab/i2vgen-xl') {
+      log('Gửi tới I2VGen-XL...');
+      setStatus('I2VGen-XL đang xử lý...', 42);
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: Object.assign({}, authHeader, {'Content-Type':'application/json'}),
+        body: JSON.stringify({
+          inputs: 'A person dancing energetically, smooth motion, high quality',
+          parameters: {
+            image: 'data:image/jpeg;base64,' + imgB64,
+            num_frames: frames,
+            guidance_scale: guidance
+          }
+        })
+      });
+
+    } else {
+      // AnimateDiff + others
+      log('Gửi tới AnimateDiff...');
+      setStatus('AnimateDiff đang xử lý...', 42);
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: Object.assign({}, authHeader, {'Content-Type':'application/json'}),
+        body: JSON.stringify({
+          inputs: 'a person dancing dynamically, fluid motion, high quality, cinematic',
+          parameters: { num_frames: frames, guidance_scale: guidance }
+        })
+      });
+    }
+
+    setStatus('Nhận phản hồi...', 78);
+    await handleResp(response);
+
+  } catch(err) {
+    console.error(err);
+    document.getElementById('statusArea').classList.remove('show');
+    showErr(
+      '<strong>❌ ' + (err.message || 'Lỗi không xác định') + '</strong><br><br>' +
+      '<b>Kiểm tra:</b><br>' +
+      '• Token phải bắt đầu bằng <code>hf_</code> và còn hiệu lực<br>' +
+      '• Model có thể đang cold-start — thử lại sau 30–60 giây<br>' +
+      '• Vào trang model trên HuggingFace.co, nhấn Accept nếu có điều khoản<br>' +
+      '• Thử đổi sang model khác trong phần cài đặt'
+    );
+    document.getElementById('runBtn').disabled = false;
+  }
+}
+
+/* ── XỬ LÝ RESPONSE TỪ API ── */
+async function handleResp(response) {
+  log('HTTP ' + response.status);
+
+  if (response.status === 503) {
+    var wait = 60;
+    try { var j = await response.json(); wait = Math.ceil(j.estimated_time || 60); } catch(e) {}
+    throw new Error('Model đang tải (cold start). Thử lại sau ~' + wait + 's.');
+  }
+  if (response.status === 401) throw new Error('Token không hợp lệ hoặc đã hết hạn.');
+  if (response.status === 403) throw new Error('Không có quyền dùng model này. Hãy Accept điều khoản trên HuggingFace.');
+  if (response.status === 429) throw new Error('Quá nhiều request. Đợi vài phút rồi thử lại.');
+  if (response.status === 400) {
+    var msg = '';
+    try { var jj = await response.json(); msg = jj.error || JSON.stringify(jj); } catch(e) { msg = await response.text().catch(function(){return '';}); }
+    throw new Error('Bad request (400): ' + msg.slice(0,200));
+  }
+  if (!response.ok) {
+    var body = '';
+    try { body = await response.text(); } catch(e) {}
+    throw new Error('Lỗi ' + response.status + ': ' + body.slice(0,200));
+  }
+
+  var ct = response.headers.get('content-type') || '';
+  log('Content-Type: ' + ct);
+
+  // Case A: binary trực tiếp
+  if (ct.includes('video/') || ct.includes('image/') || ct.includes('application/octet-stream')) {
+    var blob = await response.blob();
+    log('Binary: ' + (blob.size/1024).toFixed(1) + ' KB');
+    setStatus('✅ Hoàn thành!', 100);
+    renderBlob(blob, ct);
+    return;
+  }
+
+  // Case B: JSON
+  var raw = await response.text();
+  log('Raw (120 đầu): ' + raw.slice(0,120));
+
+  var json;
+  try { json = JSON.parse(raw); }
+  catch(e) {
+    // Không parse được — thử binary fallback
+    renderBlob(new Blob([raw], {type:'video/mp4'}), 'video/mp4');
+    return;
+  }
+
+  var item = Array.isArray(json) ? json[0] : json;
+  if (!item) throw new Error('Response rỗng từ API.');
+  log('JSON keys: ' + Object.keys(item).join(', '));
+
+  var VKEYS = ['video','generated_video','output','video_url','url','result'];
+  var IKEYS = ['image','generated_image','output_image','image_url','png'];
+
+  for (var i=0; i<VKEYS.length; i++) {
+    var k = VKEYS[i];
+    if (item[k] && typeof item[k]==='string') {
+      log('Video field: ' + k);
+      if (item[k].startsWith('http')) renderURL(item[k],'video');
+      else renderB64(item[k],'video/mp4');
+      return;
+    }
+  }
+  for (var ii=0; ii<IKEYS.length; ii++) {
+    var ki = IKEYS[ii];
+    if (item[ki] && typeof item[ki]==='string') {
+      log('Image field: ' + ki);
+      if (item[ki].startsWith('http')) renderURL(item[ki],'image');
+      else renderB64(item[ki],'image/png');
+      return;
+    }
+  }
+  if (typeof json==='string' && json.length>50) {
+    renderB64(json,'video/mp4'); return;
+  }
+
+  throw new Error('Không nhận dạng được kết quả. Keys: ' + Object.keys(item).join(', '));
+}
+
+/* ── RENDER HELPERS ── */
+function renderB64(b64, mime) {
+  var clean = b64.replace(/^data:[^;]+;base64,/,'');
+  var bin;
+  try { bin = atob(clean); } catch(e) { throw new Error('Base64 không hợp lệ'); }
+  var bytes = new Uint8Array(bin.length);
+  for (var i=0; i<bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  var blob = new Blob([bytes], {type:mime});
+  log('B64 → Blob: ' + (blob.size/1024).toFixed(1) + ' KB');
+  renderBlob(blob, mime);
+}
+
+function renderURL(url, kind) {
+  setStatus('✅ Hoàn thành!', 100);
+  var mc = document.getElementById('resultMedia');
+  if (kind==='video') {
+    mc.innerHTML = '<video src="'+url+'" controls autoplay loop playsinline style="width:100%;max-height:420px;border-radius:10px;background:#000;margin-bottom:18px;display:block;"></video>';
+  } else {
+    mc.innerHTML = '<img src="'+url+'" style="width:100%;max-height:420px;object-fit:contain;border-radius:10px;margin-bottom:18px;display:block;">';
+  }
+  var dl = document.getElementById('dlBtn');
+  dl.href = url; dl.download = 'dance-transfer.'+(kind==='video'?'mp4':'png'); dl.target='_blank';
+  finishUI();
+}
+
+function renderBlob(blob, ct) {
+  var url  = URL.createObjectURL(blob);
+  var mc   = document.getElementById('resultMedia');
+  var isGif   = ct.includes('gif');
+  var isVideo = !isGif && (ct.includes('video/') || (!ct.includes('image/') && blob.size>30000));
+  var ext  = isGif?'gif': isVideo?'mp4':'png';
+
+  if (isGif) {
+    mc.innerHTML = '<img src="'+url+'" style="width:100%;border-radius:10px;margin-bottom:18px;display:block;">';
+  } else if (isVideo) {
+    mc.innerHTML =
+      '<video controls autoplay loop playsinline '+
+        'style="width:100%;max-height:420px;border-radius:10px;background:#000;margin-bottom:18px;display:block;">'+
+        '<source src="'+url+'" type="video/mp4">'+
+        '<source src="'+url+'" type="video/webm">'+
+        'Trình duyệt không hỗ trợ video.'+
+      '</video>';
+  } else {
+    mc.innerHTML = '<img src="'+url+'" style="width:100%;max-height:420px;object-fit:contain;border-radius:10px;margin-bottom:18px;display:block;">';
+  }
+
+  var dl = document.getElementById('dlBtn');
+  dl.href = url; dl.download = 'dance-transfer.'+ext;
+  setStatus('✅ Hoàn thành!', 100);
+  finishUI();
+}
+
+function finishUI() {
+  document.getElementById('statusArea').classList.remove('show');
+  document.getElementById('resultArea').classList.add('show');
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('runBtn').textContent = '▶ TẠO LẠI';
+  document.getElementById('resultArea').scrollIntoView({behavior:'smooth', block:'start'});
+}
+</script>
+</body>
+</html>
